@@ -133,15 +133,15 @@ class ConnectionsPool(Thread):
         self.__class__._class_queue = Queue.Queue(self._min_size + 1)
         for i in range(0, self._min_size):
             try:
-                _temp_mysql_class = self.connect_class(self.parameter_dict)
+                _temp_connect_class = self.connect_class(self.parameter_dict)
             except TypeError as e:
                 self._error_check = False
                 raise e
             except AttributeError as e:
                 self._error_check = False
                 raise e
-            _temp_mysql_class.getConnect()
-            self.__class__._class_queue.put(_temp_mysql_class)
+            _temp_connect_class.getConnect()
+            self.__class__._class_queue.put(_temp_connect_class)
             self.__class__._has_size += 1
 
     def run(self):
@@ -150,17 +150,18 @@ class ConnectionsPool(Thread):
 
         while self._run_check and self._error_check:
             time.sleep(1)
-            _check_mysql_class = self.__class__._class_queue.get()
-            if _check_mysql_class.conn.open:
-                self.__class__._class_queue.put(_check_mysql_class)
+            _check_connect_class = self.__class__._class_queue.get()
+            if _check_connect_class.conn.open:
+                self.__class__._class_queue.put(_check_connect_class)
+                _check_connect_class.conn.ping()
                 continue
             else:
                 _queue_size = self.__class__._class_queue.qsize()
                 if _queue_size > self._min_size:
                     self.__class__._has_size -= 1
                     continue
-                _check_mysql_class = self.connect_class.getConnect(self.parameter_dict)
-                self.__class__._class_queue.put(_check_mysql_class)
+                _check_connect_class = self.connect_class.getConnect(self.parameter_dict)
+                self.__class__._class_queue.put(_check_connect_class)
 
         while True and self._error_check:
             if self.__class__._has_size == 0:
